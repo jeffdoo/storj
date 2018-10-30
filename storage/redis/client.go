@@ -10,7 +10,6 @@ import (
 
 	"github.com/go-redis/redis"
 	"github.com/zeebo/errs"
-
 	"storj.io/storj/pkg/utils"
 	"storj.io/storj/storage"
 )
@@ -208,4 +207,22 @@ func (client *Client) allPrefixedItems(prefix, first, last storage.Key) (storage
 	sort.Sort(all)
 
 	return all, nil
+}
+
+//Enqueue add a FIFO element, for DistQueue
+func (client *Client) Enqueue(value storage.Value) error {
+	err := client.db.LPush("queue", []byte(value)).Err()
+	if err != nil {
+		return Error.New("enqueue error: %v", err)
+	}
+	return nil
+}
+
+//Dequeue removes a FIFO element, for DistQueue
+func (client *Client) Dequeue() (storage.Value, error) {
+	out, err := client.db.RPop("queue").Bytes()
+	if err != nil {
+		return nil, Error.New("dequeue error: %v", err)
+	}
+	return storage.Value(out), nil
 }
